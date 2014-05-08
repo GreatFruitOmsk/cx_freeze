@@ -261,6 +261,10 @@ int WINAPI WinMain(
 #endif
     int status;
 
+#ifdef CX_OPTIMIZE
+    printf("OPTIMIZE\n");
+    Py_OptimizeFlag = 2;
+#endif
     // initialize Python
     Py_NoSiteFlag = 1;
     Py_FrozenFlag = 1;

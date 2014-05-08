@@ -60,6 +60,10 @@ int main(int argc, char **argv)
     int status;
 
     // initialize Python
+#ifdef CX_OPTIMIZE
+    Py_OptimizeFlag = 2;
+#endif
+
 #ifndef CX_FREEZE_KEEP_PATH
     Py_NoSiteFlag = 1;
     Py_FrozenFlag = 1;

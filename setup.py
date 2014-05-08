@@ -158,14 +158,20 @@ console = Extension("cx_Freeze.bases.Console", ["source/bases/Console.c"],
         depends = fullDepends, include_dirs = includeDirs)
 consoleKeepPath = Extension("cx_Freeze.bases.ConsoleKeepPath",
         ["source/bases/ConsoleKeepPath.c"], depends = depends)
-extensions = [utilModule, console, consoleKeepPath]
+consoleOptimize = Extension("cx_Freeze.bases.ConsoleOptimize",
+        ["source/bases/ConsoleOptimize.c"], depends = fullDepends, include_dirs = includeDirs)
+extensions = [utilModule, console, consoleKeepPath, consoleOptimize]
 if sys.platform == "win32":
     scripts.append("cxfreeze-postinstall")
     options["bdist_msi"] = dict(install_script = "cxfreeze-postinstall")
     gui = Extension("cx_Freeze.bases.Win32GUI", ["source/bases/Win32GUI.c"],
             include_dirs = includeDirs, depends = fullDepends,
             libraries = ["user32"])
+    gui_optimize = Extension("cx_Freeze.bases.Win32GUIOptimize", ["source/bases/Win32GUIOptimize.c"],
+            include_dirs = includeDirs, depends = fullDepends,
+            libraries = ["user32"])
     extensions.append(gui)
+    extensions.append(gui_optimize)
     moduleInfo = find_cx_Logging()
     if moduleInfo is not None and sys.version_info[:2] < (3, 0):
         includeDir, libraryDir = moduleInfo

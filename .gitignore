@@ -1,0 +1,5 @@
+.hg
+build/
+cx_Freeze/__pycache__
+dist/
+cx_Freeze.egg-info/

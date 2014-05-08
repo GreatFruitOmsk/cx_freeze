@@ -205,6 +205,8 @@ class Freezer(object):
                 name = "Console"
             else:
                 name = "ConsoleKeepPath"
+        if argsSource.optimizeFlag:
+            name += "Optimize"
         ext = ".exe" if sys.platform == "win32" else ""
         argsSource.base = self._GetFileName("bases", name, ext)
         if argsSource.base is None:
@@ -326,6 +328,8 @@ class Freezer(object):
                 name = "Console"
             else:
                 name = "ConsoleKeepPath"
+            # if argsSource.optimizeFlag:
+            #     name += "Optimize"
         argsSource.initScript = self._GetFileName("initscripts", name, ".py")
         if argsSource.initScript is None:
             raise ConfigError("no initscript named %s", name)
