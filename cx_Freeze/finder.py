@@ -55,16 +55,16 @@ class ZipModulesCache(object):
         self.files_seen = {}
         # (path, modulename) -> module_details
         self.loadable_modules = {}
-    
+
     def find(self, path, modulename):
         """Find a module in the given path.
-        
+
         path should be a string referring to a zipfile or a directory in a
         zip file. If it is outside a zip file, it will be ignored.
-        
+
         modulename should be a string, with only the last part of the module
         name, i.e. not containing any dots.
-        
+
         If the module is found, this returns information in the same format
         as :func:`imp.find_module`. Otherwise, it returns None.
         """
@@ -85,11 +85,11 @@ class ZipModulesCache(object):
                 return self.retrieve_loadable_module(path, modulename)
             except KeyError:
                 return None
-    
+
     def retrieve_loadable_module(self, directory, modulename):
         """Retrieve a module from the cache and translate its info into the
         format returned by :func:`imp.find_module`.
-        
+
         Raises KeyError if the module is not present.
         """
         zip, ideal_path, actual_path, ispkg = self.loadable_modules[directory, modulename]
@@ -100,11 +100,11 @@ class ZipModulesCache(object):
         full_path = os.path.join(zip.filename, ideal_path)
         if ispkg:
             return None, full_path, ('', '', imp.PKG_DIRECTORY)
-        else:                
+        else:
             fp = zip.read(actual_path)
             info = (".pyc", "rb", imp.PY_COMPILED)
             return fp, full_path, info
-    
+
     def cache_zip_file(self, zip_path):
         """Read a zip file and cache the modules and packages found inside it.
         """
@@ -119,7 +119,7 @@ class ZipModulesCache(object):
                     continue
                 baseName = os.path.splitext(source_from_cache(archiveName))[0]
             nameparts = baseName.split("/")
-            
+
             if len(nameparts) > 1 and nameparts[-1] == '__init__':
                 # dir/__init__.pyc  -> dir is a package
                 self.record_loadable_module(nameparts[:-1], None, zip, True)
@@ -139,6 +139,7 @@ class ModuleFinder(object):
     def __init__(self, includeFiles = None, excludes = [], path = None,
             replacePaths = None, copyDependentFiles = True, bootstrap = False,
             compress = True):
+        self._bootstrap = bootstrap
         self.includeFiles = includeFiles
         if includeFiles is None:
             self.includeFiles = []
@@ -166,10 +167,10 @@ class ModuleFinder(object):
            Python imports itself during initialization and, if not found,
            can result in behavior that differs from running from source;
            also include modules used within the bootstrap code.
-           
+
            When cx_Freeze is built, these modules (and modules they load) are
            embedded into the base executables (see the WriteSourceFile method).
-           
+
            When freezing applications, these modules are added, but their
            Module objects are then cleared by _ClearBaseModules, so they are not
            copied into a zip file. They will be accessible to the application as
@@ -291,7 +292,7 @@ class ModuleFinder(object):
                 fileNames = os.listdir(path)
             except os.error:
                 continue
-            
+
             for fileName in fileNames:
                 fullName = os.path.join(path, fileName)
                 if os.path.isdir(fullName):
@@ -312,7 +313,7 @@ class ModuleFinder(object):
                         continue
                     if name == "__init__":
                         continue
-                    
+
                 subModuleName = "%s.%s" % (module.name, name)
                 subModule = self._InternalImportModule(subModuleName,
                                 deferredImports)
@@ -400,13 +401,13 @@ class ModuleFinder(object):
             return self._modules[name]
         except KeyError:
             pass
-        
+
         if name in self._builtinModules:
             module = self._AddModule(name)
             self._RunHook("load", module.name, module)
             module.inImport = False
             return module
-        
+
         pos = name.rfind(".")
         if pos < 0:  # Top-level module
             path = self.path
@@ -423,13 +424,13 @@ class ModuleFinder(object):
                 parentModule.ExtendPath()
             path = parentModule.path
             searchName = name[pos + 1:]
-        
+
         if name in self.aliases:
             actualName = self.aliases[name]
             module = self._InternalImportModule(actualName, deferredImports)
             self._modules[name] = module
             return module
-        
+
         try:
             fp, path, info = self._FindModule(searchName, path, namespace)
             module = self._LoadModule(name, fp, path, info, deferredImports,
@@ -449,7 +450,7 @@ class ModuleFinder(object):
         module = self._AddModule(name)
         module.file = path
         module.parent = parent
-        
+
         if type == imp.PY_SOURCE:
             # Load & compile Python source code
             if sys.version_info[0] >= 3:
@@ -462,10 +463,10 @@ class ModuleFinder(object):
             if codeString and codeString[-1] != "\n":
                 codeString = codeString + "\n"
             try:
-                module.code = compile(codeString, path, "exec")
+                module.code = compile(codeString, name if self._bootstrap else path, "exec")
             except SyntaxError:
                 raise ImportError("Invalid syntax in %s" % path)
-        
+
         elif type == imp.PY_COMPILED:
             # Load Python bytecode
             if isinstance(fp, bytes):
@@ -481,15 +482,15 @@ class ModuleFinder(object):
             else:
                 fp.read(skip_bytes)
                 module.code = marshal.load(fp)
-        
+
         elif type == imp.C_EXTENSION and parent is not None:
             # Our extension loader (see the freezer module) uses imp to load
             # compiled extensions.
             self.IncludeModule("imp")
-        
+
         # If there's a custom hook for this module, run it.
         self._RunHook("load", module.name, module)
-        
+
         if module.code is not None:
             if self.replacePaths:
                 topLevelModule = module
@@ -497,10 +498,10 @@ class ModuleFinder(object):
                     topLevelModule = topLevelModule.parent
                 module.code = self._ReplacePathsInCode(topLevelModule,
                         module.code)
-            
+
             # Scan the module code for import statements
             self._ScanCode(module.code, module, deferredImports)
-        
+
         module.inImport = False
         return module
 
@@ -534,13 +535,13 @@ class ModuleFinder(object):
                 continue
             newFileName = replaceValue + origFileName[len(searchValue):]
             break
-        
+
         # Run on subordinate code objects from function & class definitions.
         constants = list(co.co_consts)
         for i, value in enumerate(constants):
             if isinstance(value, type(co)):
                 constants[i] = self._ReplacePathsInCode(topLevelModule, value)
-        
+
         # Build the new code object.
         if sys.version_info[0] < 3:
             return types.CodeType(co.co_argcount, co.co_nlocals,
@@ -582,11 +583,11 @@ class ModuleFinder(object):
                 else:
                     opArg = ord(code[opIndex]) + ord(code[opIndex + 1]) * 256
                 opIndex += 2
-            
+
             if op == LOAD_CONST:
                 # Store an argument to be used later by an IMPORT_NAME operation.
                 arguments.append(co.co_consts[opArg])
-            
+
             elif op == IMPORT_NAME:
                 name = co.co_names[opArg]
                 if len(arguments) >= 2:
@@ -594,7 +595,7 @@ class ModuleFinder(object):
                 else:
                     relativeImportIndex = -1
                     fromList, = arguments
-                
+
                 if name not in module.excludeNames:
                     # Load the imported module
                     importedModule = self._ImportModule(name, deferredImports,
@@ -604,7 +605,7 @@ class ModuleFinder(object):
                                 and importedModule.path is not None:
                             self._EnsureFromList(module, importedModule,
                                     fromList, deferredImports)
-            
+
             elif op == IMPORT_FROM and topLevel:
                 if is3:
                     op = code[opIndex]
@@ -625,18 +626,18 @@ class ModuleFinder(object):
                     storeName = deferredCaller is not module
                 if storeName:
                     module.globalNames[name] = None
-            
+
             elif op == IMPORT_STAR and topLevel and importedModule is not None:
                 module.globalNames.update(importedModule.globalNames)
                 arguments = []
-            
+
             elif op not in (BUILD_LIST, INPLACE_ADD):
                 # The stack was used for something else, so we clear it.
                 if topLevel and op in STORE_OPS:
                     name = co.co_names[opArg]
                     module.globalNames[name] = None
                 arguments = []
-        
+
         # Scan the code objects from function & class definitions
         for constant in co.co_consts:
             if isinstance(constant, type(co)):
